@@ -12,8 +12,7 @@
         h1 { color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
         .credits { font-size: 0.8em; color: #a29bfe; margin-bottom: 20px; border-bottom: 1px solid #533483; padding-bottom: 10px; }
         .promo-link { display: inline-block; margin-top: 15px; color: var(--success); text-decoration: none; font-weight: bold; font-size: 0.9em; border: 1px solid var(--success); padding: 5px 10px; border-radius: 5px; transition: 0.3s; }
-        .promo-link:hover { background: var(--success); color: var(--bg); }
-
+        
         input[type="text"] { width: 85%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; background: var(--btn-bg); color: white; outline: none; }
         button { padding: 12px 20px; margin: 5px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.3s; color: white; }
         .btn-main { background: var(--accent); width: 90%; }
@@ -21,12 +20,10 @@
         .btn-danger { background: #d63031; }
         .btn-back { background: var(--btn-bg); color: #a29bfe; border: 1px solid #533483; }
         .btn-round { background: #00a8ff; color: white; margin-top: 15px; width: 90%; }
-        .active-tool { background: var(--accent) !important; box-shadow: 0 0 10px var(--accent); }
+        .active-tool { background: var(--accent) !important; box-shadow: 0 0 10px var(--accent); border: 2px solid white !important; }
         .hidden { display: none !important; }
 
-        /* Notificaciones (Toast) */
-        #notification { position: fixed; top: 20px; right: 20px; padding: 15px 25px; border-radius: 10px; background: var(--accent); color: white; font-weight: bold; z-index: 2000; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        #notification { position: fixed; top: 20px; right: 20px; padding: 15px 25px; border-radius: 10px; background: var(--accent); color: white; font-weight: bold; z-index: 2000; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 
         .toolbar { display: flex; justify-content: center; gap: 8px; margin-bottom: 10px; align-items: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 12px; flex-wrap: wrap; }
         .color-picker { width: 45px; height: 45px; border: none; border-radius: 50%; cursor: pointer; background: none; }
@@ -98,6 +95,7 @@
             <input type="color" id="color-picker" class="color-picker" value="#333333" onchange="setCol(this.value)">
             <button class="tool active-tool" id="t-pincel" onclick="setTool('pincel')">✏️</button>
             <button class="tool" id="t-goma" onclick="setTool('goma')">🧽</button>
+            <div style="width:2px; height:30px; background:white; margin:0 5px;"></div>
             <button class="size-btn" id="s-4" onclick="setSize(4)">●</button>
             <button class="size-btn active-tool" id="s-10" onclick="setSize(10)">●</button>
             <button class="size-btn" id="s-25" onclick="setSize(25)">⬤</button>
@@ -148,7 +146,7 @@
             roomID = r; miNombre = n;
             database.ref('salas/'+roomID+'/estado').once('value', snap => {
                 const est = snap.val();
-                document.getElementById('menu-inicio').classList.add('hidden'); // OCULTAR SIEMPRE SI HAY SESIÓN
+                document.getElementById('menu-inicio').classList.add('hidden');
                 if(role === 'org') {
                     if(est && est.pregunta) iniciarPartida(true);
                     else mostrarCrear(true);
@@ -160,15 +158,30 @@
     function showNotify(msg, color) {
         const n = document.getElementById('notification');
         n.innerText = msg; n.style.background = color || 'var(--accent)';
-        n.style.display = 'block';
-        setTimeout(() => { n.style.display = 'none'; }, 2000);
+        n.style.display = 'block'; setTimeout(() => { n.style.display = 'none'; }, 2000);
     }
 
     function irInicio() { localStorage.clear(); location.reload(); }
-    function setTool(t) { tool = t; document.getElementById('t-pincel').classList.toggle('active-tool', t === 'pincel'); document.getElementById('t-goma').classList.toggle('active-tool', t === 'goma'); }
+    
+    function setTool(t) { 
+        tool = t; 
+        document.getElementById('t-pincel').classList.toggle('active-tool', t === 'pincel'); 
+        document.getElementById('t-goma').classList.toggle('active-tool', t === 'goma'); 
+    }
+    
     function setCol(c) { colorActual = c; setTool('pincel'); }
-    function setSize(s) { size = s; document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active-tool')); document.getElementById('s-'+s).classList.add('active-tool'); }
-    function openZoom(nombre, src) { document.getElementById('zoom-nombre').innerText = nombre; document.getElementById('zoom-img').src = src; document.getElementById('zoom-overlay').style.display = 'flex'; }
+    
+    function setSize(s) { 
+        size = s; 
+        document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active-tool')); 
+        document.getElementById('s-'+s).classList.add('active-tool'); 
+    }
+
+    function openZoom(nombre, src) { 
+        document.getElementById('zoom-nombre').innerText = nombre; 
+        document.getElementById('zoom-img').src = src; 
+        document.getElementById('zoom-overlay').style.display = 'flex'; 
+    }
 
     function getCanvasData() {
         const temp = document.createElement('canvas'); temp.width = 350; temp.height = 350;
@@ -260,12 +273,12 @@
 
     function bloquear(v) { 
         database.ref('salas/'+roomID+'/estado').update({ bloqueado: v }); 
-        showNotify(v ? "🔒 PIZARRAS BLOQUEADAS" : "🔓 PIZARRAS ABIERTAS", v ? "#d63031" : "#40f09b");
+        showNotify(v ? "🔒 BLOQUEADAS" : "🔓 ABIERTAS", v ? "#d63031" : "#40f09b");
     }
     function revelar(n, v) { database.ref('salas/'+roomID+'/jugadores/'+n).update({ visible: v }); }
     function nuevaRonda() {
-        if(confirm("¿Siguiente ronda? Se borrarán los dibujos actuales.")) {
-            database.ref('salas/'+roomID+'/estado').update({ pregunta: "" });
+        if(confirm("¿Siguiente ronda?")) {
+            database.ref('salas/'+roomID+'/estado').update({ pregunta: "", bloqueado: false });
             database.ref('salas/'+roomID+'/jugadores').once('value', s => { s.forEach(c => { if(c.key !== "Host") c.ref.update({ dibujo: "", visible: false }); }); });
             localStorage.removeItem('pt_backup'); location.reload();
         }
@@ -273,16 +286,38 @@
     function limpiarSala() { if(confirm("¿Cerrar sala?")) { database.ref('salas/'+roomID).remove(); irInicio(); } }
 
     const getPos = (e) => { const r = canvas.getBoundingClientRect(); const x = e.touches ? e.touches[0].clientX : e.clientX; const y = e.touches ? e.touches[0].clientY : e.clientY; return { x: x - r.left, y: y - r.top }; };
+    
+    // FUNCIÓN DE DIBUJO CORREGIDA (Líneas dinámicas)
     const updateV = () => { if(!bloqueado && roomID && miNombre) { const d = getCanvasData(); database.ref('salas/'+roomID+'/jugadores/'+miNombre).update({ dibujo: d }); localStorage.setItem('pt_backup', d); } };
     
-    canvas.addEventListener('mousedown', (e) => { if(!bloqueado){ dibujando=true; ctx.beginPath(); const p=getPos(e); ctx.moveTo(p.x, p.y); }});
-    canvas.addEventListener('mousemove', (e) => { if(dibujando && !bloqueado){ const p=getPos(e); ctx.lineWidth=size; ctx.lineCap="round"; ctx.strokeStyle=(tool==='pincel')?colorActual:"#FFF"; ctx.lineTo(p.x, p.y); ctx.stroke(); }});
+    canvas.addEventListener('mousedown', (e) => { 
+        if(!bloqueado){ 
+            dibujando=true; ctx.beginPath(); const p=getPos(e); ctx.moveTo(p.x, p.y); 
+            ctx.lineWidth = size; ctx.lineCap = "round"; ctx.strokeStyle = (tool === 'pincel') ? colorActual : "#FFFFFF";
+        }
+    });
+    canvas.addEventListener('mousemove', (e) => { 
+        if(dibujando && !bloqueado){ 
+            const p=getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); 
+        }
+    });
     window.addEventListener('mouseup', () => { if(dibujando) updateV(); dibujando=false; });
-    canvas.addEventListener('touchstart', (e) => { if(!bloqueado){ e.preventDefault(); dibujando=true; ctx.beginPath(); const p=getPos(e); ctx.moveTo(p.x, p.y); }});
-    canvas.addEventListener('touchmove', (e) => { if(dibujando && !bloqueado){ e.preventDefault(); const p=getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }});
+    
+    canvas.addEventListener('touchstart', (e) => { 
+        if(!bloqueado){ 
+            e.preventDefault(); dibujando=true; ctx.beginPath(); const p=getPos(e); ctx.moveTo(p.x, p.y); 
+            ctx.lineWidth = size; ctx.lineCap = "round"; ctx.strokeStyle = (tool === 'pincel') ? colorActual : "#FFFFFF";
+        }
+    });
+    canvas.addEventListener('touchmove', (e) => { 
+        if(dibujando && !bloqueado){ 
+            e.preventDefault(); const p=getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); 
+        }
+    });
     canvas.addEventListener('touchend', () => { if(dibujando) updateV(); dibujando=false; });
 
     function borrar() { if(confirm("¿Borrar?")) { ctx.clearRect(0,0,350,350); localStorage.removeItem('pt_backup'); updateV(); } }
 </script>
 </body>
 </html>
+
