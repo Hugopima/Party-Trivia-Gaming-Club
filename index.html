@@ -22,6 +22,14 @@
         .active-tool { background: var(--accent) !important; box-shadow: 0 0 10px var(--accent); border: 2px solid white !important; }
         .hidden { display: none !important; }
 
+        /* Botón de Salir pequeño para jugadores */
+        .btn-exit-small { 
+            position: absolute; top: 10px; right: 10px; padding: 5px 10px !important; 
+            font-size: 10px !important; background: rgba(0,0,0,0.5); border: 1px solid #555; 
+            border-radius: 5px; color: #aaa; z-index: 10; width: auto !important;
+        }
+        .btn-exit-small:hover { background: var(--accent); color: white; border-color: white; }
+
         #notification { position: fixed; top: 20px; right: 20px; padding: 15px 25px; border-radius: 10px; background: var(--accent); color: white; font-weight: bold; z-index: 2000; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 
         .toolbar { display: flex; justify-content: center; gap: 8px; margin-bottom: 10px; align-items: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 12px; flex-wrap: wrap; }
@@ -52,6 +60,8 @@
         <div class="credits">Desarrollado por <b>Gaming Club</b> 🚀</div>
         <button class="btn-main" onclick="mostrarPantallaNombreHost()">CREAR NUEVA PARTIDA</button>
         <button class="btn-main" style="background:var(--btn-bg)" onclick="mostrarUnirse()">UNIRSE A SALA</button>
+        <br>
+        <a href="https://hugopima.github.io/Qui-n-es-Qui-n---Gaming-Club/" target="_blank" style="text-decoration:none; color:var(--success); font-size:0.8em; border:1px solid var(--success); padding:5px; border-radius:5px; display:inline-block; margin-top:10px;">🕵️ Juega a "Quién es Quién" aquí</a>
     </div>
 
     <div id="pantalla-nombre-host" class="hidden">
@@ -90,6 +100,7 @@
     </div>
 
     <div id="panel-jugador" class="hidden">
+        <button class="btn-exit-small" onclick="irInicio()">SALIR</button>
         <div id="tema-jugador" style="background: var(--warning); color: #000; padding: 12px; border-radius: 10px; font-weight: bold; margin-bottom: 15px; font-size: 1.2em;">TEMA: ---</div>
         <div class="toolbar">
             <input type="color" id="color-picker" style="width:45px; height:45px; border:none; cursor:pointer; background:none;" value="#333333" onchange="setCol(this.value)">
@@ -155,7 +166,14 @@
         n.style.display = 'block'; setTimeout(() => { n.style.display = 'none'; }, 2000);
     }
 
-    function irInicio() { localStorage.clear(); location.reload(); }
+    function irInicio() { 
+        if(roomID && miNombre) {
+            database.ref('salas/'+roomID+'/jugadores/'+miNombre).remove();
+        }
+        localStorage.clear(); 
+        location.reload(); 
+    }
+    
     function setTool(t) { tool = t; document.getElementById('t-pincel').classList.toggle('active-tool', t === 'pincel'); document.getElementById('t-goma').classList.toggle('active-tool', t === 'goma'); }
     function setCol(c) { colorActual = c; setTool('pincel'); }
     function setSize(s) { size = s; }
@@ -190,10 +208,8 @@
 
     function vincularLobby() {
         if(!roomID) return;
-        // Escuchamos quién es el organizador actual para poner la corona
         database.ref('salas/'+roomID+'/estado/organizadorActual').on('value', adminSnap => {
             const currentAdmin = adminSnap.val();
-            // Escuchamos la lista de jugadores
             database.ref('salas/'+roomID+'/jugadores').on('value', snap => {
                 let h = "";
                 snap.forEach(j => {
@@ -219,13 +235,11 @@
             document.getElementById('pantalla-nombre-host').classList.add('hidden');
 
             if(soyOrganizadorAhora) {
-                // Si la partida no está activa (Estamos en el Lobby inicial)
                 if(!est.activa) {
                     document.getElementById('pantalla-crear').classList.remove('hidden');
                     document.getElementById('panel-org').classList.add('hidden');
                     document.getElementById('ajustes-host-real').classList.toggle('hidden', !soyElDueñoReal);
                 } else {
-                    // Partida activa: Mostrar Panel de Control
                     document.getElementById('pantalla-crear').classList.add('hidden');
                     document.getElementById('panel-org').classList.remove('hidden');
                     escucharPizarrasVivo();
@@ -237,7 +251,6 @@
                 document.getElementById('info-admin').innerText = soyElDueñoReal ? "👑 Host de la Sala" : "👑 Te toca organizar";
                 document.getElementById('btn-cerrar-sala').classList.toggle('hidden', !soyElDueñoReal);
             } else {
-                // Soy Jugador
                 document.getElementById('pantalla-crear').classList.add('hidden');
                 document.getElementById('panel-org').classList.add('hidden');
                 if(est.activa) {
