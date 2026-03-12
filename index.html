@@ -22,13 +22,11 @@
         .active-tool { background: var(--accent) !important; box-shadow: 0 0 10px var(--accent); border: 2px solid white !important; }
         .hidden { display: none !important; }
 
-        /* Botón de Salir pequeño para jugadores */
         .btn-exit-small { 
             position: absolute; top: 10px; right: 10px; padding: 5px 10px !important; 
             font-size: 10px !important; background: rgba(0,0,0,0.5); border: 1px solid #555; 
             border-radius: 5px; color: #aaa; z-index: 10; width: auto !important;
         }
-        .btn-exit-small:hover { background: var(--accent); color: white; border-color: white; }
 
         #notification { position: fixed; top: 20px; right: 20px; padding: 15px 25px; border-radius: 10px; background: var(--accent); color: white; font-weight: bold; z-index: 2000; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 
@@ -36,7 +34,8 @@
         canvas { border: 4px solid #0f3460; background: white; border-radius: 10px; touch-action: none; width: 100%; max-width: 500px; height: auto; cursor: crosshair; }
         
         .lobby-box { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 12px; margin: 15px 0; min-height: 50px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-        .user-tag { background: var(--btn-bg); padding: 5px 12px; border-radius: 15px; border: 1px solid var(--accent); font-size: 13px; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 5px; }
+        .user-tag { background: var(--btn-bg); padding: 5px 12px; border-radius: 15px; border: 1px solid var(--accent); font-size: 13px; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 5px; cursor: pointer; transition: 0.2s; }
+        .user-tag:hover { border-color: var(--warning); background: #1a1a2e; }
         
         .reveal-card { background: white; padding: 10px; border-radius: 12px; border: 2px solid var(--accent); color: #1a1a2e; }
         #zoom-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 1000; flex-direction: column; }
@@ -60,8 +59,6 @@
         <div class="credits">Desarrollado por <b>Gaming Club</b> 🚀</div>
         <button class="btn-main" onclick="mostrarPantallaNombreHost()">CREAR NUEVA PARTIDA</button>
         <button class="btn-main" style="background:var(--btn-bg)" onclick="mostrarUnirse()">UNIRSE A SALA</button>
-        <br>
-        <a href="https://hugopima.github.io/Qui-n-es-Qui-n---Gaming-Club/" target="_blank" style="text-decoration:none; color:var(--success); font-size:0.8em; border:1px solid var(--success); padding:5px; border-radius:5px; display:inline-block; margin-top:10px;">🕵️ Juega a "Quién es Quién" aquí</a>
     </div>
 
     <div id="pantalla-nombre-host" class="hidden">
@@ -74,6 +71,7 @@
     <div id="pantalla-crear" class="hidden">
         <h2 style="color:var(--warning)">LOBBY DE ESPERA</h2>
         <h1 id="codigo-generado" style="font-size: 4em; color: var(--accent); margin: 5px 0; letter-spacing: 5px;">----</h1>
+        <p style="font-size: 0.7em; color: #aaa;">(Click en un nombre para expulsar)</p>
         <div class="lobby-box" id="lista-espera-org"></div>
         <div id="ajustes-host-real" class="config-row">
             <input type="checkbox" id="check-random" style="width:20px; height:20px; cursor:pointer;">
@@ -116,7 +114,7 @@
     </div>
 
     <div id="panel-org" class="hidden">
-        <h3 style="color:var(--warning)">CONTROL DE SALA: <span id="room-id-active"></span></h3>
+        <h3 style="color:var(--warning)">SALA: <span id="room-id-active"></span></h3>
         <p id="info-admin" style="font-size:0.9em; margin-top:-10px;"></p>
         <div style="display: flex; gap: 10px; justify-content: center;">
             <button class="btn-danger" onclick="bloquear(true)">🔒 BLOQUEAR</button>
@@ -167,17 +165,17 @@
     }
 
     function irInicio() { 
-        if(roomID && miNombre) {
-            database.ref('salas/'+roomID+'/jugadores/'+miNombre).remove();
-        }
-        localStorage.clear(); 
-        location.reload(); 
+        if(roomID && miNombre) database.ref('salas/'+roomID+'/jugadores/'+miNombre).remove();
+        localStorage.clear(); location.reload(); 
     }
-    
-    function setTool(t) { tool = t; document.getElementById('t-pincel').classList.toggle('active-tool', t === 'pincel'); document.getElementById('t-goma').classList.toggle('active-tool', t === 'goma'); }
-    function setCol(c) { colorActual = c; setTool('pincel'); }
-    function setSize(s) { size = s; }
-    function openZoom(nombre, src) { document.getElementById('zoom-nombre').innerText = nombre; document.getElementById('zoom-img').src = src; document.getElementById('zoom-overlay').style.display = 'flex'; }
+
+    function expulsar(nombre) {
+        if(nombre === miNombre) return;
+        if(confirm("¿Expulsar a " + nombre + " de la sala?")) {
+            database.ref('salas/'+roomID+'/jugadores/'+nombre).remove();
+            showNotify(nombre + " expulsado.", "var(--danger)");
+        }
+    }
 
     function mostrarPantallaNombreHost() {
         document.getElementById('menu-inicio').classList.add('hidden');
@@ -186,24 +184,15 @@
 
     function crearSalaLobby() {
         const nick = document.getElementById('host-nickname').value.trim();
-        if(!nick) return alert("Ponte un nombre");
-        miNombre = nick;
-        roomID = Math.floor(1000 + Math.random() * 9000).toString();
+        if(!nick) return alert("Pone un nombre");
+        miNombre = nick; roomID = Math.floor(1000 + Math.random() * 9000).toString();
         hostRealUID = Date.now().toString();
-        localStorage.setItem('pt_room', roomID);
-        localStorage.setItem('pt_name', miNombre);
-        localStorage.setItem('pt_host_uid', hostRealUID);
-
+        localStorage.setItem('pt_room', roomID); localStorage.setItem('pt_name', miNombre); localStorage.setItem('pt_host_uid', hostRealUID);
         database.ref('salas/'+roomID+'/estado').set({ 
-            organizadorActual: miNombre, 
-            rotar: false, 
-            activa: false, 
-            hostRealUID: hostRealUID,
-            historialAdmins: [miNombre]
+            organizadorActual: miNombre, rotar: false, activa: false, hostRealUID: hostRealUID, historialAdmins: [miNombre]
         });
         database.ref('salas/'+roomID+'/jugadores/'+miNombre).set({ nombre: miNombre, visible: false });
-        vincularLobby();
-        escucharEstado();
+        vincularLobby(); escucharEstado();
     }
 
     function vincularLobby() {
@@ -211,11 +200,19 @@
         database.ref('salas/'+roomID+'/estado/organizadorActual').on('value', adminSnap => {
             const currentAdmin = adminSnap.val();
             database.ref('salas/'+roomID+'/jugadores').on('value', snap => {
+                // Si yo ya no estoy en la lista de jugadores (me han expulsado)
+                if(miNombre && !snap.hasChild(miNombre)) {
+                    alert("Has sido expulsado de la sala.");
+                    irInicio();
+                    return;
+                }
+
                 let h = "";
                 snap.forEach(j => {
-                    const nombreJ = j.val().nombre;
-                    const esAdmin = (nombreJ === currentAdmin);
-                    h += `<div class="user-tag">${esAdmin ? '👑 ' : '👤 '}${nombreJ}</div>`;
+                    const n = j.val().nombre;
+                    const esAdmin = (n === currentAdmin);
+                    const soyHostReal = (hostRealUID && hostRealUID !== "");
+                    h += `<div class="user-tag" onclick="${soyHostReal ? "expulsar('"+n+"')" : ""}">${esAdmin ? '👑 ' : '👤 '}${n}</div>`;
                 });
                 const lOrg = document.getElementById('lista-espera-org'); if(lOrg) lOrg.innerHTML = h;
                 const lJug = document.getElementById('lista-espera-jugador'); if(lJug) lJug.innerHTML = h;
@@ -233,12 +230,12 @@
             
             document.getElementById('menu-inicio').classList.add('hidden');
             document.getElementById('pantalla-nombre-host').classList.add('hidden');
+            document.getElementById('pantalla-unirse').classList.add('hidden');
 
             if(soyOrganizadorAhora) {
                 if(!est.activa) {
                     document.getElementById('pantalla-crear').classList.remove('hidden');
                     document.getElementById('panel-org').classList.add('hidden');
-                    document.getElementById('ajustes-host-real').classList.toggle('hidden', !soyElDueñoReal);
                 } else {
                     document.getElementById('pantalla-crear').classList.add('hidden');
                     document.getElementById('panel-org').classList.remove('hidden');
@@ -248,8 +245,9 @@
                 document.getElementById('panel-jugador').classList.add('hidden');
                 document.getElementById('codigo-generado').innerText = roomID;
                 document.getElementById('room-id-active').innerText = roomID;
-                document.getElementById('info-admin').innerText = soyElDueñoReal ? "👑 Host de la Sala" : "👑 Te toca organizar";
+                document.getElementById('info-admin').innerText = soyElDueñoReal ? "👑 Host Real" : "👑 Organizador";
                 document.getElementById('btn-cerrar-sala').classList.toggle('hidden', !soyElDueñoReal);
+                document.getElementById('ajustes-host-real').classList.toggle('hidden', !soyElDueñoReal);
             } else {
                 document.getElementById('pantalla-crear').classList.add('hidden');
                 document.getElementById('panel-org').classList.add('hidden');
@@ -270,8 +268,7 @@
 
         database.ref('salas/'+roomID+'/jugadores').on('value', snap => {
             const gal = document.getElementById('galeria-jugadores'); if(!gal) return;
-            gal.innerHTML = "";
-            snap.forEach(j => {
+            gal.innerHTML = ""; snap.forEach(j => {
                 if(j.val().visible) gal.innerHTML += `<div class="reveal-card"><b>${j.val().nombre}</b><img src="${j.val().dibujo}" onclick="openZoom('${j.val().nombre}', this.src)"></div>`;
             });
         });
@@ -280,8 +277,7 @@
     function iniciarPartida() {
         const t = document.getElementById('input-tema').value.trim();
         if(!t) return alert("Pon un tema");
-        const r = document.getElementById('check-random').checked;
-        database.ref('salas/'+roomID+'/estado').update({ pregunta: t, activa: true, bloqueado: false, rotar: r });
+        database.ref('salas/'+roomID+'/estado').update({ pregunta: t, activa: true, bloqueado: false, rotar: document.getElementById('check-random').checked });
     }
 
     function entrarLobbyJugador() {
@@ -290,8 +286,8 @@
         if(!n || !r) return alert("Faltan datos");
         database.ref('salas/'+r).once('value', snap => {
             if(!snap.exists()) return alert("No existe");
-            miNombre = n; roomID = r;
-            localStorage.setItem('pt_room', roomID); localStorage.setItem('pt_name', miNombre);
+            miNombre = n; roomID = r; hostRealUID = "";
+            localStorage.setItem('pt_room', roomID); localStorage.setItem('pt_name', miNombre); localStorage.setItem('pt_host_uid', "");
             database.ref('salas/'+roomID+'/jugadores/'+miNombre).set({ nombre: miNombre, visible: false });
             vincularLobby(); escucharEstado();
         });
@@ -310,7 +306,11 @@
 
     function bloquear(v) { database.ref('salas/'+roomID+'/estado').update({ bloqueado: v }); }
     function revelar(n, v) { database.ref('salas/'+roomID+'/jugadores/'+n).update({ visible: v }); }
-    
+    function setTool(t) { tool = t; document.getElementById('t-pincel').classList.toggle('active-tool', t === 'pincel'); document.getElementById('t-goma').classList.toggle('active-tool', t === 'goma'); }
+    function setCol(c) { colorActual = c; setTool('pincel'); }
+    function setSize(s) { size = s; }
+    function openZoom(n, s) { document.getElementById('zoom-nombre').innerText = n; document.getElementById('zoom-img').src = s; document.getElementById('zoom-overlay').style.display = 'flex'; }
+
     function nuevaRonda() {
         database.ref('salas/'+roomID).once('value', snap => {
             const sala = snap.val();
@@ -332,7 +332,6 @@
     }
 
     function limpiarSala() { if(confirm("¿Cerrar?")) { database.ref('salas/'+roomID).remove(); irInicio(); } }
-
     const getPos = (e) => { 
         const r = canvas.getBoundingClientRect(); const scaleX = canvas.width / r.width; const scaleY = canvas.height / r.height;
         const x = e.touches ? e.touches[0].clientX : e.clientX; const y = e.touches ? e.touches[0].clientY : e.clientY; 
